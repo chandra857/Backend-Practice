@@ -360,8 +360,100 @@ app.use(express.json());
 app.get("/users",(req,res)=>{
     const users = db.prepare(`SELECT * FROM users`).all();
 
-    res.status(200).json();
+    res.status(200).json(users);
 });
+
+app.post("/users",(req,res)=>{
+
+    const {name,email,age} = req.body 
+
+    //Vallidation
+    if(!name || !email){
+        return res.status(400).json({
+            message:"Name,Email are Required"
+        })
+    }
+
+    //SQL Insert 
+    const InsertUser = db.prepare(`INSERT INTO users (name,email) VALUES(?,?)`) 
+
+    const result = InsertUser.run(name,email);
+
+    res.status(201).json({
+        message:"User Created Successfully",
+        user:{
+            id:result.lastInsertRowid,
+            name:name,
+            email:email
+        }
+    })
+
+})
+
+
+//Getting One User 
+app.get("/users/:id", (req,res)=>{
+
+    const id = parseInt(req.params.id);
+
+    const getUSer = db.prepare(`SELECT * FROM users WHERE id = ?`) .get(id);
+
+    if(!getUSer){
+        return res.status(404).json({
+            message:"User not found"
+        })
+    }
+    
+    res.status(200).json(getUSer);
+})
+
+//Updating the User By Id
+app.put("/users/:id", (req,res)=>{
+
+    const id = parseInt(req.params.id);
+
+    const {name,email} = req.body 
+
+    if(!name || !email){
+        res.status(400).json({
+            message:"Name,Email are Required"
+        })
+    }
+
+    const result = db.prepare(`UPDATE users SET name = ? ,email = ? WHERE id=?`).run(name,email,id); 
+
+    if(result.changes === 0){
+        return res.status(404).json({
+            message:"User not found"
+        });
+    }
+
+    res.status(200).json({
+        message:"User is Updated Successfully"
+    })
+    
+})
+
+
+//Deleting the User by Id
+app.delete("/users/:id",(req,res)=>{
+    const id = parseInt(req.params.id);
+
+
+    const result = db.prepare(`DELETE FROM users WHERE id = ?`).run(id) 
+    
+    if(result.changes === 0){
+        return res.status(404).json({
+            message:"User not found"
+        })
+    }
+    
+    res.status(200).json({
+        message:"User is Successfully Delete",
+    })
+
+})
+
 app.listen(3000,()=>{
     console.log("Server is Listening on Port 3000")
-})
+});
